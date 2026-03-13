@@ -1,0 +1,143 @@
+---
+title: "Error Handling"
+description: "Understand and handle errors returned by the Ramp API."
+---
+
+## HTTP Status Codes
+
+The Ramp API uses standard HTTP status codes.
+
+| Status Code | Meaning |
+|-------------|---------|
+| `200 OK` | Request succeeded |
+| `201 Created` | Resource created successfully |
+| `204 No Content` | Request succeeded, no body returned |
+| `400 Bad Request` | Invalid input — check request body and parameters |
+| `401 Unauthorized` | Missing or invalid access token |
+| `403 Forbidden` | Token lacks required scope |
+| `404 Not Found` | Resource does not exist |
+| `409 Conflict` | Resource already exists or state conflict |
+| `422 Unprocessable Entity` | Request is well-formed but semantically invalid |
+| `429 Too Many Requests` | Rate limit exceeded |
+| `500 Internal Server Error` | Unexpected server error |
+
+## Error Response Format
+
+Error responses include a JSON body with details:
+
+```json
+{
+  "error_v2": {
+    "message": "The resource you requested could not be found.",
+    "error_code": "NOT_FOUND",
+    "details": {}
+  }
+}
+```
+
+## Common Errors
+
+### 400 Invalid Input
+
+Returned when your request body or query parameters are malformed.
+
+```json
+{
+  "error_v2": {
+    "message": "Invalid value for field 'interval': must be one of DAILY, WEEKLY, MONTHLY, ANNUAL, TOTAL",
+    "error_code": "INVALID_INPUT"
+  }
+}
+```
+
+**Fix:** Review the API reference for the endpoint and ensure all required fields are present and correctly typed.
+
+### 401 Unauthorized
+
+```json
+{
+  "error_v2": {
+    "message": "Authentication required.",
+    "error_code": "UNAUTHORIZED"
+  }
+}
+```
+
+**Fix:** Check that your `Authorization: Bearer <token>` header is present and the token hasn't expired.
+
+### 403 Forbidden
+
+```json
+{
+  "error_v2": {
+    "message": "Insufficient scope.",
+    "error_code": "FORBIDDEN"
+  }
+}
+```
+
+**Fix:** Re-authenticate with the correct [OAuth scope](/authentication/scopes) for this endpoint.
+
+### 429 Rate Limited
+
+```json
+{
+  "error_v2": {
+    "message": "Too many requests. Please slow down.",
+    "error_code": "RATE_LIMITED"
+  }
+}
+```
+
+**Fix:** Implement exponential backoff and respect the `Retry-After` response header.
+
+## Handling Errors in Code
+
+<CodeGroup>
+
+```python Python
+import requests
+import time
+
+def api_request(client, method, path, **kwargs):
+    for attempt in range(3):
+        response = client.request(method, path, **kwargs)
+        
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 2 ** attempt))
+            time.sleep(retry_after)
+            continue
+        
+        if response.status_code >= 400:
+            error = response.json().get("error_v2", {})
+            raise Exception(f"API error {response.status_code}: {error.get('message')}")
+        
+        return response
+    
+    raise Exception("Max retries exceeded")
+```
+
+```javascript JavaScript
+async function apiRequest(client, method, path, options = {}) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await client.request(method, path, options);
+    
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After') ?? Math.pow(2, attempt);
+      await new Promise(r => setTimeout(r, retryAfter * 1000));
+      continue;
+    }
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`API error ${response.status}: ${error.error_v2?.message}`);
+    }
+    
+    return response;
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+```
+
+</CodeGroup>

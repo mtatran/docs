@@ -1,0 +1,103 @@
+---
+title: "Idempotency"
+description: "Use idempotency keys to safely retry API requests."
+---
+
+## Overview
+
+Some Ramp API endpoints — particularly those that create or modify resources — require an **idempotency key**. This allows you to safely retry failed requests without risk of duplicate operations.
+
+## How It Works
+
+Include an `idempotency_key` in your request body. If you retry the same request with the same key, Ramp will return the original response instead of executing the operation again.
+
+```json
+{
+  "idempotency_key": "your-unique-key-here",
+  "user_id": "usr_01HX...",
+  ...
+}
+```
+
+## Endpoints That Require Idempotency Keys
+
+Idempotency keys are required for deferred (async) operations:
+
+- `POST /developer/v1/cards/deferred/virtual` — Create a virtual card
+- `POST /developer/v1/cards/deferred/physical` — Create a physical card
+- `POST /developer/v1/cards/{card_id}/deferred/suspension` — Suspend a card
+- `POST /developer/v1/cards/{card_id}/deferred/unsuspension` — Unsuspend a card
+- `POST /developer/v1/cards/{card_id}/deferred/termination` — Terminate a card
+
+## Generating Idempotency Keys
+
+Use a **UUID v4** for each unique operation attempt:
+
+<CodeGroup>
+
+```python Python
+import uuid
+
+idempotency_key = str(uuid.uuid4())
+# → "550e8400-e29b-41d4-a716-446655440000"
+```
+
+```javascript JavaScript
+const idempotencyKey = crypto.randomUUID();
+// → "550e8400-e29b-41d4-a716-446655440000"
+```
+
+```bash cURL
+# Generate a UUID with uuidgen (macOS/Linux)
+IDEMPOTENCY_KEY=$(uuidgen)
+
+curl -X POST https://api.ramp.com/developer/v1/cards/deferred/virtual \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"idempotency_key\": \"$IDEMPOTENCY_KEY\",
+    \"user_id\": \"usr_01HX...\",
+    ...
+  }"
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<Tip>
+  Generate a new UUID for each **distinct** operation. Reuse the same key only when retrying the exact same failed request.
+</Tip>
+
+- **Tie keys to your operation context**: e.g., `card-issue-{user_id}-{timestamp}`
+- **Store the key** before making the request so you can reuse it on retry
+- **Don't reuse keys** across different operations or users
+
+## Retry Pattern
+
+```python
+import uuid
+import time
+
+def create_card_with_retry(client, user_id, spending_restrictions, max_retries=3):
+    idempotency_key = str(uuid.uuid4())
+    
+    for attempt in range(max_retries):
+        try:
+            response = client.request(
+                "POST",
+                "/developer/v1/cards/deferred/virtual",
+                json={
+                    "idempotency_key": idempotency_key,
+                    "user_id": user_id,
+                    "spending_restrictions": spending_restrictions,
+                }
+            )
+            response.raise_for_status()
+            return response.json()
+        
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(2 ** attempt)  # Exponential backoff
+```

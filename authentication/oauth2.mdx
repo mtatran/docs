@@ -1,0 +1,111 @@
+---
+title: "OAuth 2.0"
+description: "Authenticate with the Ramp API using OAuth 2.0 client credentials."
+---
+
+## Overview
+
+The Ramp API uses the **OAuth 2.0 client credentials** flow. This flow is designed for server-to-server integrations where there is no user interaction — your application authenticates directly using its own credentials.
+
+<Info>
+  All API requests must include a valid bearer token. Requests without a token or with an expired token will return a `401 Unauthorized` response.
+</Info>
+
+## Token Endpoint
+
+```
+POST https://api.ramp.com/developer/v1/token
+```
+
+## Obtaining a Token
+
+<Steps>
+  <Step title="Prepare your credentials">
+    You'll need your **Client ID** and **Client Secret** from the [Ramp Developer Portal](https://app.ramp.com/developer).
+  </Step>
+  <Step title="Make the token request">
+    Send a POST request with your credentials and desired scopes:
+
+    ```bash
+    curl -X POST https://api.ramp.com/developer/v1/token \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d "grant_type=client_credentials" \
+      -d "client_id=YOUR_CLIENT_ID" \
+      -d "client_secret=YOUR_CLIENT_SECRET" \
+      -d "scope=business:read cards:read transactions:read"
+    ```
+  </Step>
+  <Step title="Use the access token">
+    Include the token in the `Authorization` header of every API request:
+
+    ```bash
+    curl https://api.ramp.com/developer/v1/business \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Step>
+</Steps>
+
+## Token Response
+
+```json
+{
+  "access_token": "ramp_tok_01HX...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "business:read cards:read transactions:read"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `access_token` | string | The bearer token to use in API requests |
+| `token_type` | string | Always `Bearer` |
+| `expires_in` | integer | Token lifetime in seconds (typically 3600) |
+| `scope` | string | Space-separated list of granted scopes |
+
+## Token Expiry & Refresh
+
+Tokens expire after **1 hour** (`expires_in: 3600`). The client credentials flow does not issue refresh tokens — simply request a new token when the current one expires.
+
+<Tip>
+  Cache your token and track its expiry time. Request a new token proactively before expiry rather than waiting for a `401` response.
+</Tip>
+
+```javascript
+// Example: Token caching in Node.js
+let cachedToken = null;
+let tokenExpiry = null;
+
+async function getToken() {
+  if (cachedToken && Date.now() < tokenExpiry - 60000) {
+    return cachedToken; // Use cached token with 60s buffer
+  }
+
+  const response = await fetch('https://api.ramp.com/developer/v1/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: process.env.RAMP_CLIENT_ID,
+      client_secret: process.env.RAMP_CLIENT_SECRET,
+      scope: 'business:read cards:read',
+    }),
+  });
+
+  const data = await response.json();
+  cachedToken = data.access_token;
+  tokenExpiry = Date.now() + data.expires_in * 1000;
+  return cachedToken;
+}
+```
+
+## Security Best Practices
+
+<Warning>
+  Never expose your **Client Secret** in client-side code, public repositories, or logs.
+</Warning>
+
+- Store credentials in environment variables or a secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault)
+- Rotate your client secret periodically
+- Request only the scopes your integration actually needs
+- Use HTTPS for all API requests (required)

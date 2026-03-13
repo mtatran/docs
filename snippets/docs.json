@@ -1,0 +1,247 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Ramp Developer Docs",
+  "logo": {
+    "light": "/logo/ramp-light.svg",
+    "dark": "/logo/ramp-dark.svg"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#FF5C35",
+    "light": "#FF7A5A",
+    "dark": "#E04420",
+    "background": {
+      "light": "#FFFFFF",
+      "dark": "#0A0A0A"
+    }
+  },
+  "topbar": {
+    "style": "default"
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "https://support.ramp.com"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Access",
+    "url": "https://ramp.com/developer"
+  },
+  "anchors": [
+    {
+      "name": "API Reference",
+      "icon": "rectangle-terminal",
+      "url": "api-reference"
+    },
+    {
+      "name": "Changelog",
+      "icon": "list",
+      "url": "https://ramp.com/changelog"
+    },
+    {
+      "name": "Status",
+      "icon": "circle-check",
+      "url": "https://status.ramp.com"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "introduction/overview",
+        "introduction/quickstart",
+        "introduction/sdks"
+      ]
+    },
+    {
+      "group": "Authentication",
+      "pages": [
+        "authentication/oauth2",
+        "authentication/scopes",
+        "authentication/token-management"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "guides/pagination",
+        "guides/idempotency",
+        "guides/webhooks",
+        "guides/errors",
+        "guides/rate-limits"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/issue-cards",
+        "guides/sync-accounting",
+        "guides/manage-users",
+        "guides/bill-pay",
+        "guides/reimbursements"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        {
+          "group": "Accounting",
+          "pages": [
+            "api-reference/accounting/list-gl-accounts",
+            "api-reference/accounting/upload-gl-accounts",
+            "api-reference/accounting/get-gl-account",
+            "api-reference/accounting/update-gl-account",
+            "api-reference/accounting/delete-gl-account",
+            "api-reference/accounting/list-connections",
+            "api-reference/accounting/get-connection",
+            "api-reference/accounting/register-connection",
+            "api-reference/accounting/update-connection",
+            "api-reference/accounting/disconnect-connection",
+            "api-reference/accounting/list-field-options",
+            "api-reference/accounting/upload-field-options",
+            "api-reference/accounting/get-field-option",
+            "api-reference/accounting/update-field-option",
+            "api-reference/accounting/delete-field-option",
+            "api-reference/accounting/list-fields",
+            "api-reference/accounting/create-field",
+            "api-reference/accounting/get-field",
+            "api-reference/accounting/update-field",
+            "api-reference/accounting/delete-field",
+            "api-reference/accounting/post-sync-status"
+          ]
+        },
+        {
+          "group": "Cards",
+          "pages": [
+            "api-reference/cards/list-cards",
+            "api-reference/cards/create-virtual-card",
+            "api-reference/cards/create-physical-card",
+            "api-reference/cards/get-card",
+            "api-reference/cards/update-card",
+            "api-reference/cards/suspend-card",
+            "api-reference/cards/unsuspend-card",
+            "api-reference/cards/terminate-card",
+            "api-reference/cards/get-deferred-task"
+          ]
+        },
+        {
+          "group": "Bills",
+          "pages": [
+            "api-reference/bills/list-bills",
+            "api-reference/bills/create-bill",
+            "api-reference/bills/get-bill",
+            "api-reference/bills/update-bill",
+            "api-reference/bills/archive-bill",
+            "api-reference/bills/upload-attachment",
+            "api-reference/bills/list-draft-bills",
+            "api-reference/bills/create-draft-bill",
+            "api-reference/bills/get-draft-bill",
+            "api-reference/bills/update-draft-bill"
+          ]
+        },
+        {
+          "group": "Transactions",
+          "pages": [
+            "api-reference/transactions/list-transactions",
+            "api-reference/transactions/get-transaction",
+            "api-reference/transactions/update-transaction"
+          ]
+        },
+        {
+          "group": "Users",
+          "pages": [
+            "api-reference/users/list-users",
+            "api-reference/users/create-user",
+            "api-reference/users/get-user",
+            "api-reference/users/update-user",
+            "api-reference/users/deactivate-user"
+          ]
+        },
+        {
+          "group": "Reimbursements",
+          "pages": [
+            "api-reference/reimbursements/list-reimbursements",
+            "api-reference/reimbursements/get-reimbursement",
+            "api-reference/reimbursements/create-reimbursement"
+          ]
+        },
+        {
+          "group": "Spend Programs",
+          "pages": [
+            "api-reference/spend-programs/list-spend-programs",
+            "api-reference/spend-programs/create-spend-program",
+            "api-reference/spend-programs/get-spend-program",
+            "api-reference/spend-programs/update-spend-program"
+          ]
+        },
+        {
+          "group": "Departments",
+          "pages": [
+            "api-reference/departments/list-departments",
+            "api-reference/departments/create-department",
+            "api-reference/departments/get-department",
+            "api-reference/departments/update-department"
+          ]
+        },
+        {
+          "group": "Locations",
+          "pages": [
+            "api-reference/locations/list-locations",
+            "api-reference/locations/create-location",
+            "api-reference/locations/get-location",
+            "api-reference/locations/update-location"
+          ]
+        },
+        {
+          "group": "Business",
+          "pages": [
+            "api-reference/business/get-business",
+            "api-reference/business/get-balance"
+          ]
+        },
+        {
+          "group": "Audit Logs",
+          "pages": [
+            "api-reference/audit-logs/list-events"
+          ]
+        },
+        {
+          "group": "Cashbacks",
+          "pages": [
+            "api-reference/cashbacks/list-cashbacks",
+            "api-reference/cashbacks/get-cashback"
+          ]
+        },
+        {
+          "group": "Custom Records",
+          "pages": [
+            "api-reference/custom-records/list-custom-tables",
+            "api-reference/custom-records/create-custom-table",
+            "api-reference/custom-records/list-columns",
+            "api-reference/custom-records/create-column"
+          ]
+        }
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/ramp",
+    "linkedin": "https://www.linkedin.com/company/ramp-financial",
+    "github": "https://github.com/ramp-finance"
+  },
+  "openapi": "https://docs.ramp.com/openapi/developer-api.json",
+  "api": {
+    "baseUrl": "https://api.ramp.com",
+    "auth": {
+      "method": "bearer"
+    },
+    "playground": {
+      "mode": "simple"
+    }
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true
+  }
+}

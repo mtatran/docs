@@ -1,0 +1,195 @@
+---
+title: "Sync Accounting"
+description: "Connect your ERP or accounting system to Ramp and sync transactions, GL accounts, vendors, and more."
+---
+
+## Overview
+
+Ramp's Accounting API lets you build a two-way integration with your ERP (e.g., NetSuite, QuickBooks, Sage). You push your chart of accounts, field options, and vendors into Ramp; Ramp returns coded transactions and bills ready to sync back.
+
+## Architecture
+
+```
+Your ERP / Accounting System
+         ↓  Upload
+    GL Accounts
+    Custom Fields
+    Vendors
+    Field Options
+         ↓
+      Ramp
+         ↓  Pull & Code
+    Transactions (coded)
+    Bills (coded)
+         ↓  Notify
+    POST sync status
+```
+
+## Step 1: Register an Accounting Connection
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/accounting/connection \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "remote_provider_name": "NetSuite",
+    "settings": {
+      "transaction_sync_button_enabled": true,
+      "reimbursement_sync_button_enabled": true,
+      "vendor_credits_enabled": false
+    }
+  }'
+```
+
+<Note>
+  Only one active accounting connection is allowed per business. If a Universal CSV connection exists, it will be upgraded automatically.
+</Note>
+
+## Step 2: Upload GL Accounts
+
+Upload your chart of accounts (up to 500 per request):
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/accounting/accounts \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gl_accounts": [
+      {
+        "id": "ext-6000",
+        "name": "Meals & Entertainment",
+        "code": "6000",
+        "classification": "EXPENSE"
+      },
+      {
+        "id": "ext-6100",
+        "name": "Travel",
+        "code": "6100",
+        "classification": "EXPENSE"
+      },
+      {
+        "id": "ext-6200",
+        "name": "Software Subscriptions",
+        "code": "6200",
+        "classification": "EXPENSE"
+      }
+    ]
+  }'
+```
+
+**Account Classifications:**
+
+| Value | Description |
+|-------|-------------|
+| `ASSET` | Asset accounts |
+| `LIABILITY` | Liability accounts |
+| `EQUITY` | Equity accounts |
+| `EXPENSE` | Expense accounts |
+| `REVENUE` | Revenue accounts |
+| `CREDCARD` | Credit card accounts |
+| `ANY` | Unclassified |
+
+## Step 3: Upload Vendors
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/accounting/vendors \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vendors": [
+      { "id": "v-aws", "name": "Amazon Web Services", "code": "V001" },
+      { "id": "v-sf", "name": "Salesforce", "code": "V002" }
+    ]
+  }'
+```
+
+## Step 4: Create Custom Accounting Fields
+
+Custom fields let users categorize transactions with your ERP's dimension data (cost centers, projects, subsidiaries, etc.):
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/accounting/fields \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "field-cost-center",
+    "name": "cost_center",
+    "display_name": "Cost Center",
+    "input_type": "SINGLE_CHOICE",
+    "is_required_for": ["TRANSACTION"],
+    "is_splittable": true
+  }'
+```
+
+## Step 5: Upload Field Options
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/accounting/field-options \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "field_id": "field-cost-center",
+    "options": [
+      { "id": "cc-eng", "value": "Engineering", "code": "CC100" },
+      { "id": "cc-mkt", "value": "Marketing", "code": "CC200" },
+      { "id": "cc-sales", "value": "Sales", "code": "CC300" }
+    ]
+  }'
+```
+
+## Step 6: Sync Transactions Back
+
+After users code transactions in Ramp, fetch them and post sync status:
+
+```bash
+# 1. Fetch coded transactions
+curl "https://api.ramp.com/developer/v1/transactions?sync_ready=true" \
+  -H "Authorization: Bearer TOKEN"
+
+# 2. Sync to your ERP...
+
+# 3. Report sync results back to Ramp
+curl -X POST https://api.ramp.com/developer/v1/accounting/syncs \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idempotency_key": "sync-batch-2024-01-15",
+    "sync_type": "TRANSACTION_SYNC",
+    "successful_syncs": [
+      {
+        "id": "txn_01HX...",
+        "reference_id": "NS-TXN-12345",
+        "deep_link_url": "https://your-netsuite.com/transaction/12345"
+      }
+    ],
+    "failed_syncs": [
+      {
+        "id": "txn_01HY...",
+        "error": { "message": "GL account not found in NetSuite" }
+      }
+    ]
+  }'
+```
+
+## Keeping Data In Sync
+
+Run a regular sync job to keep Ramp's accounting data up to date:
+
+```python
+import schedule
+import time
+
+def sync_accounting_data(ramp_client, erp_client):
+    # Pull latest GL accounts from ERP
+    gl_accounts = erp_client.get_gl_accounts()
+    ramp_client.post("/developer/v1/accounting/accounts", 
+                     json={"gl_accounts": gl_accounts})
+    
+    # Pull latest vendors
+    vendors = erp_client.get_vendors()
+    ramp_client.post("/developer/v1/accounting/vendors",
+                     json={"vendors": vendors})
+
+# Run daily
+schedule.every().day.at("02:00").do(sync_accounting_data, ramp_client, erp_client)
+```

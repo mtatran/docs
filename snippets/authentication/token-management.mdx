@@ -1,0 +1,110 @@
+---
+title: "Token Management"
+description: "Best practices for managing OAuth 2.0 access tokens."
+---
+
+## Token Lifecycle
+
+Ramp access tokens have a fixed lifetime of **3600 seconds (1 hour)**. Because the client credentials flow does not issue refresh tokens, your application must re-authenticate when a token expires.
+
+## Recommended Pattern
+
+### 1. Cache tokens in memory
+
+Avoid requesting a new token on every API call. Cache the token along with its expiry timestamp.
+
+```python
+import time
+import requests
+
+class RampClient:
+    def __init__(self, client_id: str, client_secret: str, scopes: list[str]):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.scopes = scopes
+        self._token = None
+        self._token_expires_at = 0
+
+    def get_token(self) -> str:
+        # Refresh 60 seconds before expiry
+        if time.time() < self._token_expires_at - 60:
+            return self._token
+
+        response = requests.post(
+            "https://api.ramp.com/developer/v1/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "scope": " ".join(self.scopes),
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        self._token = data["access_token"]
+        self._token_expires_at = time.time() + data["expires_in"]
+        return self._token
+
+    def request(self, method: str, path: str, **kwargs):
+        headers = kwargs.pop("headers", {})
+        headers["Authorization"] = f"Bearer {self.get_token()}"
+        return requests.request(
+            method,
+            f"https://api.ramp.com{path}",
+            headers=headers,
+            **kwargs,
+        )
+```
+
+### 2. Handle 401 responses gracefully
+
+If you receive a `401 Unauthorized` response, your token may have expired mid-operation. Clear the cached token and retry once.
+
+```python
+def request_with_retry(client, method, path, **kwargs):
+    response = client.request(method, path, **kwargs)
+    
+    if response.status_code == 401:
+        client._token = None  # Force token refresh
+        response = client.request(method, path, **kwargs)
+    
+    return response
+```
+
+## Rotating Credentials
+
+If you suspect your client secret has been compromised:
+
+1. Log in to [app.ramp.com](https://app.ramp.com) as an admin
+2. Go to **Settings → Developer → Your Application**
+3. Click **Rotate Secret**
+4. Update your secret in your secrets manager immediately
+5. Any existing tokens issued with the old secret will be invalidated
+
+## Environment Variables
+
+Always store credentials as environment variables — never hardcode them:
+
+```bash
+# .env (never commit this file)
+RAMP_CLIENT_ID=your_client_id_here
+RAMP_CLIENT_SECRET=your_client_secret_here
+```
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = RampClient(
+    client_id=os.environ["RAMP_CLIENT_ID"],
+    client_secret=os.environ["RAMP_CLIENT_SECRET"],
+    scopes=["business:read", "cards:read"],
+)
+```
+
+<Warning>
+  Never log access tokens. Treat them with the same sensitivity as passwords.
+</Warning>

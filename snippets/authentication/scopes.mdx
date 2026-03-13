@@ -1,0 +1,129 @@
+---
+title: "OAuth Scopes"
+description: "Reference for all available OAuth 2.0 scopes in the Ramp API."
+---
+
+## Overview
+
+Scopes define the permissions your application requests. You must include all required scopes when requesting a token, and your Ramp application must have those scopes approved.
+
+<Info>
+  Request only the scopes your integration needs. Over-permissioned tokens are a security risk.
+</Info>
+
+## Available Scopes
+
+### Accounting
+
+| Scope | Permission |
+|-------|-----------|
+| `accounting:read` | Read GL accounts, fields, field options, vendors, and connections |
+| `accounting:write` | Create, update, and delete accounting entities and sync statuses |
+
+### Cards
+
+| Scope | Permission |
+|-------|-----------|
+| `cards:read` | List and fetch card details |
+| `cards:write` | Create, update, suspend, and terminate cards |
+
+### Transactions
+
+| Scope | Permission |
+|-------|-----------|
+| `transactions:read` | List and fetch transaction details |
+| `transactions:write` | Update transaction memo, accounting fields, and receipts |
+
+### Users
+
+| Scope | Permission |
+|-------|-----------|
+| `users:read` | List and fetch user details |
+| `users:write` | Create, update, and deactivate users |
+
+### Bills
+
+| Scope | Permission |
+|-------|-----------|
+| `bills:read` | List and fetch bills and draft bills |
+| `bills:write` | Create, update, archive bills, and upload attachments |
+
+### Reimbursements
+
+| Scope | Permission |
+|-------|-----------|
+| `reimbursements:read` | List and fetch reimbursements |
+| `reimbursements:write` | Create and update reimbursements |
+
+### Business
+
+| Scope | Permission |
+|-------|-----------|
+| `business:read` | Fetch company information and balance |
+
+### Departments & Locations
+
+| Scope | Permission |
+|-------|-----------|
+| `departments:read` | List and fetch departments |
+| `departments:write` | Create and update departments |
+| `locations:read` | List and fetch locations |
+| `locations:write` | Create and update locations |
+
+### Spend Programs
+
+| Scope | Permission |
+|-------|-----------|
+| `spend_programs:read` | List and fetch spend programs |
+| `spend_programs:write` | Create and update spend programs |
+
+### Audit Logs
+
+| Scope | Permission |
+|-------|-----------|
+| `audit_logs:read` | Fetch audit log events |
+
+### Cashbacks
+
+| Scope | Permission |
+|-------|-----------|
+| `cashbacks:read` | List and fetch cashback payments |
+
+## Requesting Multiple Scopes
+
+Scopes are space-separated in the token request:
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "scope=accounting:read accounting:write transactions:read cards:write"
+```
+
+## Common Scope Combinations
+
+### ERP / Accounting Integration
+
+```
+accounting:read accounting:write transactions:read
+```
+
+### Card Issuance Platform
+
+```
+cards:read cards:write users:read spend_programs:read
+```
+
+### Expense Management
+
+```
+transactions:read transactions:write reimbursements:read reimbursements:write receipts:write
+```
+
+### Read-only Dashboard
+
+```
+business:read cards:read transactions:read users:read departments:read locations:read
+```

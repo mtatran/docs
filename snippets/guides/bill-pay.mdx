@@ -1,0 +1,159 @@
+---
+title: "Bill Pay"
+description: "Create bills, manage vendors, and track payments with the Ramp Bill Pay API."
+---
+
+## Overview
+
+The Ramp Bill Pay API lets you programmatically create and manage vendor bills, schedule payments, and track payment status — all without manual entry in the Ramp UI.
+
+## Bill Lifecycle
+
+```
+Draft Bill → Approved Bill → Payment Scheduled → Payment Completed
+```
+
+Bills can be created directly (approved immediately on creation) or as **drafts** for review.
+
+## Creating a Bill
+
+### Direct bill (ready for payment)
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/bills \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vendor_id": "v-aws",
+    "invoice_number": "INV-2024-001",
+    "issued_at": "2024-01-10",
+    "due_at": "2024-02-10",
+    "invoice_currency": "USD",
+    "line_items": [
+      {
+        "amount": 1500.00,
+        "memo": "January cloud infrastructure"
+      }
+    ],
+    "payment_method": "ACH",
+    "payment_details": {
+      "source_bank_account_id": "ba_01HX...",
+      "vendor_account_id": "va_01HX...",
+      "payment_arrival_date": "2024-02-10"
+    }
+  }'
+```
+
+### Draft bill (for review)
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/bills/drafts \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vendor_id": "v-salesforce",
+    "invoice_number": "INV-2024-002",
+    "issued_at": "2024-01-15",
+    "due_at": "2024-02-15",
+    "invoice_currency": "USD",
+    "line_items": [
+      { "amount": 12000.00, "memo": "Annual CRM license" }
+    ]
+  }'
+```
+
+## Payment Methods
+
+| Method | Description |
+|--------|-------------|
+| `ACH` | Standard ACH bank transfer (1-3 business days) |
+| `DOMESTIC_WIRE` | Same-day domestic wire transfer |
+| `CHECK` | Physical check mailed to vendor |
+| `CARD` | Pay with a Ramp card |
+| `ONE_TIME_CARD` | Single-use virtual card |
+| `INTERNATIONAL` | International wire / SWIFT |
+| `PAID_MANUALLY` | Mark as paid outside Ramp |
+
+## Tracking Payment Status
+
+Fetch a bill to see its current `status_summary`:
+
+```bash
+curl https://api.ramp.com/developer/v1/bills/bill_01HX... \
+  -H "Authorization: Bearer TOKEN"
+```
+
+**Status values:**
+
+| Status | Description |
+|--------|-------------|
+| `PAYMENT_READY` | Payment details complete, awaiting initiation |
+| `PAYMENT_SCHEDULED` | Payment scheduled for future date |
+| `PAYMENT_PROCESSING` | Payment in flight |
+| `PAYMENT_COMPLETED` | Payment successfully delivered |
+| `PAYMENT_ERROR` | Payment failed — action required |
+| `APPROVAL_PENDING` | Waiting for internal approval |
+| `APPROVAL_REJECTED` | Bill was rejected |
+| `PAYMENT_DETAILS_MISSING` | Vendor bank details needed |
+
+## Uploading Attachments
+
+Attach an invoice PDF to a bill:
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/bills/bill_01HX.../attachments \
+  -H "Authorization: Bearer TOKEN" \
+  -F "file=@invoice.pdf;type=application/pdf" \
+  -F "attachment_type=INVOICE"
+```
+
+## Listing Bills with Filters
+
+```bash
+# Get all unpaid bills
+curl "https://api.ramp.com/developer/v1/bills?status=OPEN" \
+  -H "Authorization: Bearer TOKEN"
+
+# Get bills for a specific vendor
+curl "https://api.ramp.com/developer/v1/bills?vendor_id=v-aws" \
+  -H "Authorization: Bearer TOKEN"
+```
+
+## Archiving a Bill
+
+<Warning>
+  Archiving is destructive. In-flight payments will be cancelled if possible. Paid bills cannot be archived.
+</Warning>
+
+```bash
+curl -X DELETE https://api.ramp.com/developer/v1/bills/bill_01HX... \
+  -H "Authorization: Bearer TOKEN"
+```
+
+## Full Integration Example
+
+```python
+def process_invoice(ramp_client, invoice):
+    # 1. Create a draft bill
+    draft = ramp_client.post("/developer/v1/bills/drafts", json={
+        "vendor_id": invoice.vendor_ramp_id,
+        "invoice_number": invoice.number,
+        "issued_at": invoice.date.isoformat(),
+        "due_at": invoice.due_date.isoformat(),
+        "invoice_currency": invoice.currency,
+        "line_items": [
+            {"amount": item.amount, "memo": item.description}
+            for item in invoice.line_items
+        ],
+    }).json()
+    
+    # 2. Upload the invoice PDF
+    ramp_client.post(
+        f"/developer/v1/bills/drafts/{draft['id']}/attachments",
+        files={"file": open(invoice.pdf_path, "rb")},
+        data={"attachment_type": "INVOICE"},
+    )
+    
+    print(f"Draft bill created: {draft['id']}")
+    return draft["id"]
+```

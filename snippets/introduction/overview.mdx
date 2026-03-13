@@ -1,0 +1,81 @@
+---
+title: "Ramp Developer API"
+description: "Build powerful financial automations with the Ramp API — manage cards, sync accounting, automate bill pay, and more."
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="Ramp API Hero"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="Ramp API Hero"
+/>
+
+## What you can build
+
+The Ramp Developer API gives you programmatic access to Ramp's full financial infrastructure. Whether you're building an ERP integration, automating card issuance, or syncing expense data, the API covers it all.
+
+<CardGroup cols={2}>
+  <Card title="Issue & Manage Cards" icon="credit-card" href="/guides/issue-cards">
+    Create virtual and physical cards, set spending restrictions, and manage card lifecycles programmatically.
+  </Card>
+  <Card title="Sync Accounting" icon="calculator" href="/guides/sync-accounting">
+    Connect your ERP or accounting system to automatically sync transactions, GL accounts, and field options.
+  </Card>
+  <Card title="Automate Bill Pay" icon="file-invoice-dollar" href="/guides/bill-pay">
+    Create bills, manage vendors, schedule payments, and track payment status end-to-end.
+  </Card>
+  <Card title="Manage Reimbursements" icon="money-bill-transfer" href="/guides/reimbursements">
+    Submit and track employee reimbursements, including receipt attachments and approval workflows.
+  </Card>
+</CardGroup>
+
+## Base URL
+
+All API requests are made to:
+
+```
+https://api.ramp.com
+```
+
+## Authentication
+
+The Ramp API uses **OAuth 2.0** for authentication. All requests must include a valid bearer token in the `Authorization` header.
+
+```bash
+Authorization: Bearer <your_access_token>
+```
+
+<Card title="Set up OAuth 2.0" icon="lock" href="/authentication/oauth2">
+  Learn how to obtain and manage access tokens.
+</Card>
+
+## API Versioning
+
+The current API version is **v1**, reflected in all endpoint paths:
+
+```
+https://api.ramp.com/developer/v1/...
+```
+
+## OpenAPI Spec
+
+The full OpenAPI specification is available for download and use with tools like Postman, Insomnia, or code generators:
+
+```
+https://docs.ramp.com/openapi/developer-api.json
+```
+
+## Support
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="rectangle-terminal" href="/api-reference">
+    Browse the complete endpoint reference with live request playground.
+  </Card>
+  <Card title="Developer Support" icon="headset" href="https://support.ramp.com">
+    Contact Ramp's developer support team for API questions.
+  </Card>
+</CardGroup>

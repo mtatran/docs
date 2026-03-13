@@ -1,0 +1,107 @@
+---
+title: "Pagination"
+description: "How to paginate through large result sets in the Ramp API."
+---
+
+## Overview
+
+All list endpoints in the Ramp API return paginated results. Pagination uses a **cursor-based** approach via the `start` query parameter and the `page.next` field in responses.
+
+## Response Structure
+
+List endpoints return a consistent envelope:
+
+```json
+{
+  "data": [...],
+  "page": {
+    "next": "cursor_token_for_next_page"
+  }
+}
+```
+
+When `page.next` is `null` or absent, you've reached the last page.
+
+## Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `start` | string | — | Cursor from the previous page's `page.next` |
+| `page_size` | integer | 20 | Results per page. Must be between 2 and 100. |
+
+## Fetching All Pages
+
+<CodeGroup>
+
+```python Python
+import requests
+
+def get_all_transactions(client):
+    results = []
+    start = None
+
+    while True:
+        params = {"page_size": 100}
+        if start:
+            params["start"] = start
+
+        response = client.request("GET", "/developer/v1/transactions", params=params)
+        data = response.json()
+
+        results.extend(data["data"])
+
+        next_cursor = data.get("page", {}).get("next")
+        if not next_cursor:
+            break
+        start = next_cursor
+
+    return results
+```
+
+```javascript JavaScript
+async function getAllTransactions(client) {
+  const results = [];
+  let start = null;
+
+  while (true) {
+    const params = new URLSearchParams({ page_size: 100 });
+    if (start) params.set('start', start);
+
+    const response = await client.request(
+      'GET',
+      `/developer/v1/transactions?${params}`
+    );
+    const data = await response.json();
+
+    results.push(...data.data);
+
+    const next = data.page?.next;
+    if (!next) break;
+    start = next;
+  }
+
+  return results;
+}
+```
+
+```bash cURL
+# Page 1
+curl "https://api.ramp.com/developer/v1/transactions?page_size=100" \
+  -H "Authorization: Bearer TOKEN"
+
+# Page 2 — use the `next` cursor from previous response
+curl "https://api.ramp.com/developer/v1/transactions?page_size=100&start=CURSOR_FROM_PREVIOUS" \
+  -H "Authorization: Bearer TOKEN"
+```
+
+</CodeGroup>
+
+## Tips
+
+<Tip>
+  Use `page_size=100` (the maximum) when fetching large datasets to minimize the number of API requests.
+</Tip>
+
+<Warning>
+  Cursors are not permanent. Don't store a `page.next` cursor for long-term use — fetch data sequentially in a single run.
+</Warning>

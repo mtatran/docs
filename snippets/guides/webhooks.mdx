@@ -1,0 +1,125 @@
+---
+title: "Webhooks"
+description: "Receive real-time event notifications from Ramp."
+---
+
+## Overview
+
+Ramp webhooks allow your application to receive real-time notifications when events occur — such as a transaction being created, a card being issued, or a bill payment completing. This eliminates the need to poll the API for changes.
+
+## Setting Up Webhooks
+
+<Steps>
+  <Step title="Create a webhook endpoint">
+    Set up an HTTPS endpoint on your server that can receive POST requests with JSON bodies.
+  </Step>
+  <Step title="Register your endpoint">
+    Log in to [app.ramp.com](https://app.ramp.com) → **Settings → Developer → Webhooks**, and add your endpoint URL.
+  </Step>
+  <Step title="Select events">
+    Choose which event types you want to receive.
+  </Step>
+  <Step title="Store your signing secret">
+    Ramp provides a signing secret used to verify webhook authenticity. Store it securely.
+  </Step>
+</Steps>
+
+## Webhook Payload
+
+All webhook events share a common envelope:
+
+```json
+{
+  "id": "evt_01HX...",
+  "type": "transaction.created",
+  "created_at": "2024-01-15T10:30:00Z",
+  "data": {
+    "object": { ... }
+  }
+}
+```
+
+## Event Types
+
+### Transactions
+- `transaction.created` — A new transaction was posted
+- `transaction.updated` — A transaction's memo, fields, or receipts changed
+
+### Cards
+- `card.created` — A new card was issued
+- `card.updated` — Card details or spending restrictions changed
+- `card.suspended` — A card was suspended
+- `card.terminated` — A card was permanently terminated
+
+### Bills
+- `bill.created` — A new bill was created
+- `bill.updated` — Bill details were updated
+- `bill.paid` — A bill payment was completed
+- `bill.archived` — A bill was archived
+
+### Users
+- `user.created` — A new user was added
+- `user.deactivated` — A user was deactivated
+
+### Reimbursements
+- `reimbursement.created` — A reimbursement was submitted
+- `reimbursement.updated` — Reimbursement status changed
+
+## Verifying Webhook Signatures
+
+<Warning>
+  Always verify webhook signatures to ensure requests are from Ramp.
+</Warning>
+
+Ramp signs each webhook request with an HMAC-SHA256 signature using your signing secret. The signature is included in the `X-Ramp-Signature` header.
+
+```python
+import hmac
+import hashlib
+
+def verify_webhook(payload: bytes, signature: str, secret: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        payload,
+        hashlib.sha256
+    ).hexdigest()
+    
+    return hmac.compare_digest(f"sha256={expected}", signature)
+
+# In your webhook handler:
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+
+@app.route("/webhooks/ramp", methods=["POST"])
+def handle_webhook():
+    signature = request.headers.get("X-Ramp-Signature")
+    
+    if not verify_webhook(request.data, signature, RAMP_WEBHOOK_SECRET):
+        abort(401)
+    
+    event = request.json
+    handle_event(event)
+    
+    return "", 200
+```
+
+## Responding to Webhooks
+
+Your endpoint must return a `200 OK` response within **30 seconds**. If Ramp doesn't receive a `2xx` response, it will retry the webhook with exponential backoff.
+
+<Tip>
+  For long-running processing, immediately return `200` and process the event asynchronously via a queue.
+</Tip>
+
+## Retry Policy
+
+| Attempt | Delay |
+|---------|-------|
+| 1st retry | 5 minutes |
+| 2nd retry | 30 minutes |
+| 3rd retry | 2 hours |
+| 4th retry | 8 hours |
+| 5th retry | 24 hours |
+
+After 5 failed attempts, the webhook is dropped.

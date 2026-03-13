@@ -1,0 +1,102 @@
+---
+title: "Quickstart"
+description: "Make your first Ramp API request in minutes."
+---
+
+## Prerequisites
+
+Before you begin, you'll need:
+
+- A Ramp account with developer access
+- API credentials (Client ID and Client Secret) from the [Ramp Developer Portal](https://app.ramp.com/developer)
+
+## Step 1: Get your credentials
+
+<Steps>
+  <Step title="Log in to Ramp">
+    Navigate to [app.ramp.com](https://app.ramp.com) and log in as an admin.
+  </Step>
+  <Step title="Open Developer Settings">
+    Go to **Settings → Developer** to access your API credentials.
+  </Step>
+  <Step title="Create an application">
+    Click **Create Application**, give it a name, and select the OAuth scopes your integration needs.
+  </Step>
+  <Step title="Save your credentials">
+    Copy your **Client ID** and **Client Secret** — the secret will only be shown once.
+  </Step>
+</Steps>
+
+## Step 2: Obtain an access token
+
+Exchange your credentials for an OAuth 2.0 access token using the client credentials flow:
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "scope=business:read cards:read transactions:read"
+```
+
+**Response:**
+
+```json
+{
+  "access_token": "ramp_tok_abc123...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "business:read cards:read transactions:read"
+}
+```
+
+## Step 3: Make your first request
+
+Use the access token to fetch your company information:
+
+```bash
+curl https://api.ramp.com/developer/v1/business \
+  -H "Authorization: Bearer ramp_tok_abc123..."
+```
+
+**Response:**
+
+```json
+{
+  "id": "biz_01HX...",
+  "business_name_legal": "Acme Corp",
+  "business_name_on_card": "ACME",
+  "is_reimbursements_enabled": true,
+  "phone": "+1 (415) 555-0123",
+  "website": "https://acme.com"
+}
+```
+
+## Step 4: Explore the API
+
+<CardGroup cols={2}>
+  <Card title="List your cards" icon="credit-card" href="/api-reference/cards/list-cards">
+    Fetch all cards associated with your business.
+  </Card>
+  <Card title="Get transactions" icon="receipt" href="/api-reference/transactions/list-transactions">
+    Retrieve transaction history with filters.
+  </Card>
+  <Card title="Manage users" icon="users" href="/api-reference/users/list-users">
+    List and manage employees in your organization.
+  </Card>
+  <Card title="Sync accounting" icon="calculator" href="/guides/sync-accounting">
+    Connect your ERP and start syncing data.
+  </Card>
+</CardGroup>
+
+## SDKs & Tools
+
+<CardGroup cols={2}>
+  <Card title="OpenAPI Spec" icon="file-code" href="https://docs.ramp.com/openapi/developer-api.json">
+    Download the full OpenAPI 3.0 spec to generate clients or import into Postman.
+  </Card>
+  <Card title="Postman Collection" icon="cloud" href="https://www.postman.com/ramp-api">
+    Import the Ramp API collection directly into Postman.
+  </Card>
+</CardGroup>

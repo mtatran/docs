@@ -1,0 +1,71 @@
+---
+title: "SDKs & Libraries"
+description: "Official and community SDKs to integrate with the Ramp API."
+---
+
+## Official Resources
+
+Ramp provides an OpenAPI 3.0 specification that you can use to generate clients in any language or import into API tools.
+
+<CardGroup cols={2}>
+  <Card title="OpenAPI Spec" icon="file-code" href="https://docs.ramp.com/openapi/developer-api.json">
+    The canonical OpenAPI 3.0 spec. Use this to generate a client in any language.
+  </Card>
+  <Card title="LLM-friendly docs" icon="robot" href="https://docs.ramp.com/llms.txt">
+    Plain-text version of API documentation formatted for AI assistants.
+  </Card>
+</CardGroup>
+
+## Generate a Client
+
+You can generate a typed SDK in any language using the OpenAPI spec with [OpenAPI Generator](https://openapi-generator.tech/) or [Fern](https://www.buildwithfern.com/).
+
+### TypeScript / JavaScript
+
+```bash
+npx @openapitools/openapi-generator-cli generate \
+  -i https://docs.ramp.com/openapi/developer-api.json \
+  -g typescript-fetch \
+  -o ./ramp-client
+```
+
+### Python
+
+```bash
+openapi-generator-cli generate \
+  -i https://docs.ramp.com/openapi/developer-api.json \
+  -g python \
+  -o ./ramp-python-client
+```
+
+### Go
+
+```bash
+openapi-generator-cli generate \
+  -i https://docs.ramp.com/openapi/developer-api.json \
+  -g go \
+  -o ./ramp-go-client
+```
+
+## Postman
+
+Import the Ramp API directly into Postman:
+
+<Steps>
+  <Step title="Open Postman">
+    Launch the Postman desktop app or use the web version at [postman.com](https://www.postman.com).
+  </Step>
+  <Step title="Import the spec">
+    Click **Import** → **Link**, and paste:
+    ```
+    https://docs.ramp.com/openapi/developer-api.json
+    ```
+  </Step>
+  <Step title="Configure authentication">
+    Set up an OAuth 2.0 environment variable with your bearer token.
+  </Step>
+</Steps>
+
+## API Playground
+
+The [API Reference](/api-reference) on this site includes a built-in request playground. Enter your bearer token in the **Authentication** section of any endpoint page to make live requests.

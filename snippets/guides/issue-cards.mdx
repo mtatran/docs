@@ -1,0 +1,199 @@
+---
+title: "Issue & Manage Cards"
+description: "Learn how to programmatically issue virtual and physical cards with the Ramp API."
+---
+
+## Overview
+
+The Ramp Card API lets you issue virtual and physical cards, configure spending restrictions, and manage card lifecycles — all programmatically.
+
+Card operations that create or modify cards are **asynchronous (deferred)**. You'll receive a task ID immediately, then poll for the result.
+
+## The Deferred Pattern
+
+Card creation is async. Here's the flow:
+
+```
+POST /developer/v1/cards/deferred/virtual
+  → { "id": "task_01HX..." }   ← task ID
+
+GET /developer/v1/cards/deferred/status/task_01HX...
+  → { "status": "SUCCESS", "data": { "card_id": "card_01HX..." } }
+```
+
+## Creating a Virtual Card
+
+<Steps>
+  <Step title="Issue the card">
+    ```bash
+    curl -X POST https://api.ramp.com/developer/v1/cards/deferred/virtual \
+      -H "Authorization: Bearer TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "idempotency_key": "550e8400-e29b-41d4-a716-446655440000",
+        "user_id": "usr_01HX...",
+        "display_name": "Marketing Budget Q1",
+        "spending_restrictions": {
+          "amount": 5000,
+          "interval": "MONTHLY",
+          "transaction_amount_limit": 500
+        }
+      }'
+    ```
+
+    **Response:**
+    ```json
+    { "id": "task_01HX..." }
+    ```
+  </Step>
+
+  <Step title="Poll for completion">
+    ```bash
+    curl https://api.ramp.com/developer/v1/cards/deferred/status/task_01HX... \
+      -H "Authorization: Bearer TOKEN"
+    ```
+
+    **Response (success):**
+    ```json
+    {
+      "id": "task_01HX...",
+      "status": "SUCCESS",
+      "data": {
+        "card_id": "card_01HX..."
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Spending Restrictions
+
+Spending restrictions define how a card can be used:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `amount` | number | Spend limit amount in dollars |
+| `interval` | enum | Resets on: `DAILY`, `WEEKLY`, `MONTHLY`, `QUARTERLY`, `ANNUAL`, `TOTAL` |
+| `transaction_amount_limit` | number | Max per-transaction amount |
+| `categories` | integer[] | MCC category whitelist |
+| `blocked_categories` | integer[] | MCC category blacklist |
+| `vendor_whitelist` | string[] | Allowed vendor names |
+| `vendor_blacklist` | string[] | Blocked vendor names |
+| `lock_date` | date | Auto-terminate date |
+
+### Example: One-time use card
+
+```json
+{
+  "spending_restrictions": {
+    "amount": 250,
+    "interval": "TOTAL",
+    "transaction_amount_limit": 250,
+    "vendor_whitelist": ["AWS", "Google Cloud"]
+  }
+}
+```
+
+## Creating a Physical Card
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/cards/deferred/physical \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idempotency_key": "unique-key-here",
+    "user_id": "usr_01HX...",
+    "display_name": "Corporate Travel Card",
+    "fulfillment": {
+      "shipping": {
+        "method": "STANDARD",
+        "recipient_address": {
+          "first_name": "Jane",
+          "last_name": "Smith",
+          "address1": "123 Main St",
+          "city": "San Francisco",
+          "state": "CA",
+          "postal_code": "94105",
+          "country": "US"
+        }
+      }
+    },
+    "spending_restrictions": {
+      "amount": 10000,
+      "interval": "MONTHLY"
+    }
+  }'
+```
+
+## Managing Card State
+
+### Suspend a card (reversible)
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/cards/card_01HX.../deferred/suspension \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "idempotency_key": "unique-key-here" }'
+```
+
+### Unsuspend a card
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/cards/card_01HX.../deferred/unsuspension \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "idempotency_key": "unique-key-here" }'
+```
+
+### Terminate a card (permanent)
+
+<Warning>
+  Card termination is **irreversible**. The card cannot be reactivated.
+</Warning>
+
+```bash
+curl -X POST https://api.ramp.com/developer/v1/cards/card_01HX.../deferred/termination \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "idempotency_key": "unique-key-here" }'
+```
+
+## Updating a Card
+
+Update spending restrictions, display name, or reassign to another user:
+
+```bash
+curl -X PATCH https://api.ramp.com/developer/v1/cards/card_01HX... \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "Updated Card Name",
+    "spending_restrictions": {
+      "amount": 2500,
+      "interval": "MONTHLY"
+    }
+  }'
+```
+
+## Polling Helper
+
+```python
+import time
+
+def wait_for_card(client, task_id, timeout=30):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        response = client.request(
+            "GET", f"/developer/v1/cards/deferred/status/{task_id}"
+        )
+        result = response.json()
+        
+        if result["status"] == "SUCCESS":
+            return result["data"]["card_id"]
+        elif result["status"] == "ERROR":
+            raise Exception(f"Card creation failed: {result['data'].get('error')}")
+        
+        time.sleep(1)
+    
+    raise TimeoutError("Card creation timed out")
+```
